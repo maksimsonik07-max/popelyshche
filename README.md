@@ -66,6 +66,8 @@ js/survival.js    fatigue, drinking water, turrets
 js/extras.js      weather, ambient sound, dodging
 js/quest.js       tutorial and story line
 js/save.js        settings and five save slots
+js/lang-data.js   English names and descriptions for the data tables
+js/lang.js        the second language: dictionary and the switch
 js/ui.js          HUD and panels
 js/menu.js        menus, save slots, building
 js/menufx.js      the living main-menu backdrop
@@ -73,7 +75,7 @@ js/main.js        game loop, input, sound
 js/game.js        start-up, loading, loading screen
 ```
 
-The in-game text is in Ukrainian.
+The interface comes in English and Ukrainian. Switch it under **Settings → Language**; the choice is remembered between sessions.
 
 ## Licence
 

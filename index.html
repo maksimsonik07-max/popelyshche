@@ -233,6 +233,7 @@ button.slot { cursor: pointer; } button.slot:hover { border-color: var(--mut); }
 #sceneCap { position: fixed; right: var(--gr); bottom: max(16px, env(safe-area-inset-bottom, 0px)); padding: 6px 12px; background: rgba(12, 14, 11, .7); border-left: 3px solid var(--amber); font: 500 15px var(--disp); letter-spacing: .08em; text-transform: uppercase; }
 #sceneCap small { display: block; color: var(--mut); font: 400 12.5px var(--body); letter-spacing: 0; text-transform: none; }
 #menuTip { max-width: 56ch; min-height: 3.2em; padding: 8px 12px; border-left: 3px solid var(--moss); background: rgba(12, 14, 11, .6); font-size: 14.5px; transition: opacity .45s; }
+:root[data-lang="en"] #menuTip::before { content: "Tip · " !important; }
 #menuTip::before { content: "Порада · "; color: var(--moss); font: 500 13px var(--disp); letter-spacing: .1em; text-transform: uppercase; }
 .wrap h1 { background-size: 100% 220%; animation: ember 7s ease-in-out infinite alternate; }
 @keyframes ember { from { background-position: 50% 0%; } to { background-position: 50% 100%; } }
@@ -368,6 +369,7 @@ button.slot { cursor: pointer; } button.slot:hover { border-color: var(--mut); }
     <div id="mv-settings" class="mv" hidden>
       <h2>Налаштування</h2>
       <div class="set">
+        <label for="setLang">Мова</label><select id="setLang"><option value="uk">Українська</option><option value="en">English</option></select>
         <label for="setVol">Гучність</label><input type="range" id="setVol" min="0" max="100" step="5">
         <label for="setShadow">Тіні</label><select id="setShadow"><option value="2">Високі</option><option value="1">Низькі</option><option value="0">Вимкнено</option></select>
         <label for="setRes">Роздільність картинки</label><select id="setRes"><option value="2">Висока</option><option value="1">Звичайна</option><option value="0">Низька (швидше)</option></select>
@@ -406,5 +408,7 @@ button.slot { cursor: pointer; } button.slot:hover { border-color: var(--mut); }
 <script src="js/menufx.js"></script>
 <script src="js/main.js"></script>
 <script src="js/survival.js"></script>
+<script src="js/lang-data.js"></script>
+<script src="js/lang.js"></script>
 <script src="js/game.js"></script>
 <script>if (!window.THREE) document.getElementById('loadText').textContent = 'Не вдалося завантажити 3D-бібліотеку. Перевір інтернет і онови сторінку.';</script>

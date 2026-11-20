@@ -62,7 +62,8 @@ function dodge() {
 /* відстань до цілі завдання і стрілка на краю екрана, коли ціль поза кадром */
 function questPointer(dt) {
   QP.t -= dt; const m = Quest.marker(), ar = $('qArrow');
-  if (QP.t <= 0) { QP.t = 0.25; $('questDist').textContent = m ? Math.round(Math.hypot(m.x - P.x, m.z - P.z)) + ' м' : ''; }
+  const unit = typeof LANG !== 'undefined' && LANG === 'en' ? ' m' : ' м';
+  if (QP.t <= 0) { QP.t = 0.25; $('questDist').textContent = m ? Math.round(Math.hypot(m.x - P.x, m.z - P.z)) + unit : ''; }
   if (!m || P.dead || UI.modal()) { ar.hidden = true; return; }
   const v = QP.v || (QP.v = new THREE.Vector3()); v.set(m.x, 1, m.z).project(G.camera);
   const on = v.z < 1 && Math.abs(v.x) < 0.92 && Math.abs(v.y) < 0.88; ar.hidden = on; if (on) return;

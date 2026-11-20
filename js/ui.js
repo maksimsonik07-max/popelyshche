@@ -200,7 +200,8 @@ const UI = {
     for (const b of World.buildings) { if (b.type === 'house' || b.type === 'shop' && b.id % 2) continue; const x = (b.x0 + b.w / 2) * k, z = (b.z0 + b.h / 2) * k; g.strokeText(b.def.n, x, z + 4); g.fillStyle = '#f0ead8'; g.fillText(b.def.n, x, z + 4); }
     if (World.tower) { const x = World.tower.cx * k, z = World.tower.cz * k; g.strokeText('Радіовежа', x, z - 8); g.fillStyle = '#f0ead8'; g.fillText('Радіовежа', x, z - 8); }
     const lab = (t, x, z, col) => { g.strokeText(t, x * k, z * k); g.fillStyle = col || '#f0ead8'; g.fillText(t, x * k, z * k); };
-    lab('Табір', World.core.cx, World.core.cz - 2.5, '#9fe07a'); lab('Кар\'єр', World.quarry.cx, World.quarry.cz); lab('Озеро', World.lake.cx, World.lake.cz); lab('Місто', 100, TOWN0 + 1, '#e3b54b');
+    const ml = s => (typeof trText === 'function' ? trText(s) : s);
+    lab(ml('Табір'), World.core.cx, World.core.cz - 2.5, '#9fe07a'); lab(ml('Кар\'єр'), World.quarry.cx, World.quarry.cz); lab(ml('Озеро'), World.lake.cx, World.lake.cz); lab(ml('Місто'), 100, TOWN0 + 1, '#e3b54b');
     g.fillStyle = '#9fe07a'; g.fillRect(World.core.cx * k - 4, World.core.cz * k - 4, 8, 8);
     const m = Quest.marker(); if (m) { g.fillStyle = '#ffd24a'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(m.x * k, m.z * k, 7, 0, 7); g.fill(); g.stroke(); }
     g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(P.x * k, P.z * k, 5, 0, 7); g.fill(); g.stroke();
