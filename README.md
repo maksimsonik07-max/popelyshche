@@ -1,76 +1,80 @@
-# Попелище
+# Popelyshche
 
-3D RPG-виживання серед зомбі у браузері. Ти отямився в таборі за межею мертвого міста: добувай ресурси, розбудовуй базу, ходи в місто по здобич — і знайди спосіб викликати евакуацію.
+**English** · [Українська](README.uk.md)
 
-Гра написана звичайним JavaScript із [three.js](https://threejs.org/). Без збірки, без залежностей, без серверної частини — усе рахується в браузері.
+A 3D zombie survival RPG that runs in the browser. *Popelyshche* means "the ashes" — what is left of a town after it burns. You come round in a camp beyond the town's edge: gather resources, build up a base, raid the streets for supplies, and find a way to call in an evacuation.
 
-## Як запустити
+Written in plain JavaScript with [three.js](https://threejs.org/). No build step, no dependencies, no back end — everything runs in the browser.
 
-Відкрий `index.html` у браузері. Потрібен інтернет: three.js і шрифти підвантажуються з CDN.
+## Running it
 
-Якщо браузер блокує локальні файли, запусти простий сервер із папки гри:
+Open `index.html` in a browser. An internet connection is needed: three.js and the fonts are loaded from a CDN.
+
+If your browser blocks local files, serve the folder instead:
 
 ```
 python -m http.server 8000
 ```
 
-і відкрий `http://localhost:8000`.
+then open `http://localhost:8000`.
 
-## Керування
+## Controls
 
-| Клавіші | Дія |
+| Keys | Action |
 | --- | --- |
-| `WASD` | рух відносно камери |
-| `Shift` / `C` | біг / скрадання |
-| `ЛКМ` | удар, постріл, рубання дерев і каменю |
-| `Пробіл` / `V` | поштовх / ухил |
-| `E` | дія: обшук, двері, збирання, ремонт, робочі місця |
-| `B` | будівництво в межах бази |
-| `Tab` / `P` / `M` | інвентар, персонаж, мапа |
-| `R` / `Q` / `1` `2` | перезарядка, зміна зброї |
-| `H` / `G` / `F` | лікування / їжа й вода / ліхтарик |
-| `ПКМ` + рух миші | поворот камери, коліщатко — масштаб |
+| `WASD` | move, relative to the camera |
+| `Shift` / `C` | sprint / sneak |
+| `Left mouse` | swing, shoot, chop trees and mine rock |
+| `Space` / `V` | shove / dodge |
+| `E` | interact: search, doors, gather, repair, workstations |
+| `B` | build, inside the base radius |
+| `Tab` / `P` / `M` | inventory, character, map |
+| `R` / `Q` / `1` `2` | reload, swap weapon |
+| `H` / `G` / `F` | heal / eat and drink / flashlight |
+| `Right mouse` + move | rotate the camera; wheel zooms |
 
-## Що є в грі
+## What is in the game
 
-**Розвиток.** Чотири класи на старті, п'ять атрибутів, сім навичок, що ростуть від практики, і 23 перки в чотирьох гілках: рукопашник, стрілець, виживальник, майстер.
+**Progression.** Four starting classes, five attributes, seven skills that grow through use, and 23 perks across four branches: brawler, shooter, survivor, craftsman.
 
-**Зомбі.** Блукач, бігун, повзун, бугай, плювач, крикун і нічний ватажок. Вони не знають, де ти: помічають лише в межах свого зору або йдуть на шум, а загубивши слід — ідуть туди, де бачили востаннє. Уночі швидші й лютіші.
+**The dead.** Walker, runner, crawler, brute, spitter, screamer and a boss that hunts at night. They do not know where you are: they spot you only within their own line of sight, or follow a noise, and once they lose the trail they head for the place they saw you last. At night they are faster and more aggressive.
 
-**Зброя.** Дванадцять видів ближнього бою і шість стрілецьких, з якістю від звичайної до легендарної, випадковими властивостями, зносом і ремонтом.
+**Weapons.** Twelve melee weapons and six firearms, with quality from common to legendary, random affixes, wear and repair.
 
-**Добування й крафт.** Дерево, камінь, руда, сірка, волокно, ягоди; 39 рецептів — руками, на багатті, верстаку, в печі, кузні та на набійному столі.
+**Gathering and crafting.** Wood, stone, iron ore, sulfur, plant fibre, berries; 39 recipes — by hand, or at a campfire, workbench, furnace, forge and ammo bench.
 
-**База.** П'ятнадцять будівель і чотири рівні бази: частокіл, мур, ворота, пастки, скриня-склад, лежанка, грядка, збирач води, стрілецька вежа. Мертві ламають усе, що стоїть на їхньому шляху.
+**The base.** Fifteen structures and four base tiers: palisade, stone wall, gate, spike traps, storage chest, bed, vegetable patch, water collector, crossbow turret. The dead break through whatever stands in their way.
 
-**Виживання.** Голод, спрага, втома, кровотеча, інфекція, зміна дня і ночі, дощ, що приглушує зір і слух мертвих.
+**Survival.** Hunger, thirst, fatigue, bleeding, infection, a day–night cycle, and rain that dulls the senses of the dead.
 
-**Світ.** Шість типів місцевості й випадковий розклад табору, озера, кар'єру та радіовежі — кожен новий світ інший. Навчання на початку проходження, сюжет до евакуації, п'ять слотів збереження.
+**The world.** Six terrain types and a randomised layout of camp, lake, quarry and radio tower — every world is different. A tutorial woven into the opening, a story line leading to the evacuation, and five save slots.
 
-## Структура
+## Layout
 
 ```
-index.html        розмітка, стилі, порядок завантаження скриптів
-js/data.js        предмети, зомбі, класи, атрибути, перки
-js/data2.js       ресурси, рецепти, будівлі бази
-js/world.js       генерація міста, колізії, пошук шляху, освітлення
-js/wild.js        дика місцевість: типи, табір, озера, кар'єри
-js/entities.js    гравець, зомбі, бій, ефекти
-js/nodes.js       дерева, валуни, руда
-js/base.js        будівлі бази й режим будівництва
-js/stations.js    робочі місця та їхні ефекти
-js/craft.js       крафт, склад, рівні бази, сон
-js/survival.js    втома, вода, стрілецькі вежі
-js/extras.js      погода, звуки довкілля, ухил
-js/quest.js       навчання й сюжетна лінія
-js/save.js        налаштування і п'ять слотів збереження
-js/ui.js          HUD та панелі
-js/menu.js        меню, слоти, будівництво
-js/menufx.js      живе тло головного меню
-js/main.js        ігровий цикл, керування, звук
-js/game.js        запуск, завантаження, екран завантаження
+index.html        markup, styles, script load order
+js/data.js        items, zombies, classes, attributes, perks
+js/data2.js       resources, recipes, base structures
+js/world.js       town generation, collision, pathfinding, lighting
+js/wild.js        wilderness: terrain types, camp, lakes, quarries
+js/entities.js    player, zombies, combat, effects
+js/nodes.js       trees, boulders, ore veins
+js/base.js        base structures and build mode
+js/stations.js    workstations and their effects
+js/craft.js       crafting, storage, base tiers, sleep
+js/survival.js    fatigue, drinking water, turrets
+js/extras.js      weather, ambient sound, dodging
+js/quest.js       tutorial and story line
+js/save.js        settings and five save slots
+js/ui.js          HUD and panels
+js/menu.js        menus, save slots, building
+js/menufx.js      the living main-menu backdrop
+js/main.js        game loop, input, sound
+js/game.js        start-up, loading, loading screen
 ```
 
-## Ліцензія
+The in-game text is in Ukrainian.
+
+## Licence
 
 [MIT](LICENSE).
