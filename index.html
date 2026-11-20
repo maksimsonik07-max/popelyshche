@@ -1,0 +1,410 @@
+<meta charset="utf-8">
+<title>Попелище</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Roboto+Condensed:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-bleed 3D scene; HUD pinned to the four corners; panels dock right; menus are a left-aligned column over the live scene. Single dark look by design. */
+:root {
+  color-scheme: dark;
+  --soot: #0c0e0b; --panel: rgba(17, 20, 15, .94); --cell: #1b1e1a; --line: #3d4435;
+  --ink: #e8e3d2; --mut: #9c9a86; --rust: #cf4a2c; --amber: #e3b54b; --moss: #86c25e; --sky: #62a9e6; --blood: #b3221a;
+  --r1: #7fcf5f; --r2: #58a8ff; --r3: #bb72ff; --r4: #ff9d33;
+  --disp: 'Oswald', 'Arial Narrow', Impact, sans-serif; --body: 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  --gl: max(16px, env(safe-area-inset-left, 0px)); --gr: max(16px, env(safe-area-inset-right, 0px));
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--soot); color: var(--ink); font: 15px/1.35 var(--body); overflow: hidden; user-select: none; -webkit-user-select: none; }
+h1, h2, h3, h4, p { margin: 0; }
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+kbd { display: inline-block; min-width: 20px; padding: 0 6px; border: 1px solid var(--mut); border-bottom-width: 2px; border-radius: 3px; background: rgba(0, 0, 0, .45); color: var(--ink); font: 700 12px/18px var(--disp); text-align: center; }
+#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+#vignette, #lowhp, #hurt, #floaters { position: fixed; inset: 0; pointer-events: none; }
+#vignette { background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, .5) 100%); }
+#lowhp { background: radial-gradient(ellipse at center, transparent 40%, rgba(150, 10, 5, .75) 100%); opacity: 0; transition: opacity .3s; }
+#hurt { background: radial-gradient(ellipse at center, rgba(170, 20, 10, .12) 20%, rgba(170, 20, 10, .8) 100%); opacity: 0; }
+#floaters { overflow: hidden; }
+.fl { position: absolute; left: 0; top: 0; display: none; font: 700 17px var(--disp); color: var(--ink); text-shadow: 0 1px 0 #000, 0 0 4px #000; will-change: transform; }
+.fl.on { display: block; }
+.fl.crit { color: var(--amber); font-size: 25px; }
+.fl.hurt { color: #ff5a48; font-size: 21px; }
+.fl.heal { color: var(--moss); }
+
+/* ── HUD ── */
+#hud { position: fixed; top: max(14px, env(safe-area-inset-top, 0px)); bottom: max(14px, env(safe-area-inset-bottom, 0px)); left: var(--gl); right: var(--gr); pointer-events: none; }
+#hud > * { position: absolute; }
+#left { left: 0; top: 0; width: 252px; display: flex; flex-direction: column; gap: 7px; }
+.lv { display: flex; align-items: center; gap: 10px; }
+#lvl { width: 40px; height: 40px; display: grid; place-items: center; flex: none; background: var(--amber); color: var(--soot); font: 700 22px var(--disp); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.lvr { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#clsname { font: 500 15px var(--disp); letter-spacing: .06em; text-transform: uppercase; text-shadow: 0 1px 3px #000; }
+.st { display: flex; align-items: center; gap: 7px; }
+.si { width: 18px; text-align: center; font-size: 13px; text-shadow: 0 1px 3px #000; }
+.st b { width: 30px; font: 700 14px var(--disp); font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px #000; }
+.bar { flex: 1; height: 9px; position: relative; overflow: hidden; background: rgba(0, 0, 0, .58); border: 1px solid rgba(255, 255, 255, .15); }
+.bar > i { position: absolute; inset: 0 auto 0 0; width: 50%; transition: width .15s; }
+.bar.hp { height: 14px; } .bar.hp > i { background: linear-gradient(#e2553d, #a62a1c); }
+.bar.stm > i { background: linear-gradient(#ebca5e, #b48b22); } .bar.stm > i.low { background: #7a6a3a; }
+.bar.hg > i { background: #c58a4a; } .bar.th > i { background: var(--sky); }
+.bar.xp { height: 5px; flex: none; } .bar.xp > i { background: var(--amber); }
+.bar.sk { height: 6px; flex: none; } .bar.sk > i { background: var(--moss); }
+#effects { display: flex; flex-wrap: wrap; gap: 4px; }
+#effects span { padding: 1px 7px; background: rgba(12, 14, 11, .78); border: 1px solid var(--line); font-size: 13px; }
+#effects .bad { border-color: var(--rust); color: #ffb3a6; } #effects .warn { border-color: var(--amber); color: var(--amber); } #effects .good { border-color: var(--moss); color: var(--moss); }
+#ptsHint { align-self: flex-start; padding: 3px 9px; background: var(--amber); color: var(--soot); font: 500 14px var(--disp); animation: pulse 1.2s infinite alternate; }
+#ptsHint kbd { background: var(--soot); border-color: var(--soot); }
+@keyframes pulse { to { filter: brightness(1.25); } }
+#quest { margin-top: 6px; padding: 8px 10px; background: rgba(12, 14, 11, .72); border-left: 3px solid var(--amber); display: flex; flex-direction: column; gap: 2px; }
+#quest small { color: var(--mut); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+#quest b { font: 500 16px var(--disp); color: var(--amber); }
+#quest span { font-size: 14px; }
+#topright { right: 0; top: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+#clock { font: 500 17px var(--disp); text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; }
+#minimap { width: 190px; height: 190px; border-radius: 50%; border: 2px solid var(--line); background: var(--soot); box-shadow: 0 4px 18px rgba(0, 0, 0, .5); }
+.tr2 { display: flex; gap: 12px; font: 500 15px var(--disp); text-shadow: 0 1px 3px #000; }
+#zone { color: var(--amber); }
+#timer { left: 50%; top: 0; transform: translateX(-50%); padding: 6px 16px; background: rgba(12, 14, 11, .85); border: 1px solid var(--amber); color: var(--amber); font: 700 21px var(--disp); white-space: nowrap; }
+#log { left: 0; bottom: 0; width: min(370px, 62vw); display: flex; flex-direction: column; gap: 4px; }
+.ln { padding: 5px 10px; background: rgba(12, 14, 11, .74); border-left: 3px solid var(--mut); font-size: 14px; transition: opacity .7s; }
+.ln.bad { border-color: var(--rust); color: #ffb3a6; } .ln.good { border-color: var(--moss); } .ln.lvl { border-color: var(--amber); color: var(--amber); } .ln.out { opacity: 0; }
+#prompt { left: 50%; bottom: 84px; transform: translateX(-50%); padding: 7px 14px; background: rgba(12, 14, 11, .84); border: 1px solid var(--line); font: 500 16px var(--disp); white-space: nowrap; }
+#weapons { left: 50%; bottom: 0; transform: translateX(-50%); display: flex; gap: 8px; }
+.ws { display: flex; align-items: center; gap: 8px; width: 214px; padding: 6px 10px 6px 6px; background: rgba(12, 14, 11, .74); border: 1px solid var(--line); opacity: .55; }
+.ws.act { opacity: 1; border-color: var(--amber); }
+.ws small { align-self: flex-start; color: var(--mut); font: 700 12px var(--disp); }
+.wi { width: 44px; height: 44px; flex: none; display: grid; place-items: center; background: var(--cell); }
+.wi img { width: 100%; height: 100%; display: block; }
+.wt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.wt b { font: 500 14px var(--disp); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.am { font: 700 15px var(--disp); font-variant-numeric: tabular-nums; } .am.bad { color: var(--rust); }
+.dur { display: block; height: 4px; position: relative; background: rgba(0, 0, 0, .65); }
+.dur > i { position: absolute; inset: 0 auto 0 0; background: var(--moss); }
+#keys { right: 0; bottom: 0; text-align: right; color: var(--mut); font-size: 12.5px; line-height: 1.75; text-shadow: 0 1px 2px #000; }
+
+/* ── панелі ── */
+.panel { position: fixed; z-index: 20; padding: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 10px 40px rgba(0, 0, 0, .6); display: flex; flex-direction: column; gap: 10px; }
+.panel > header { display: flex; align-items: center; gap: 10px; }
+.panel h3 { font: 500 19px var(--disp); letter-spacing: .04em; text-transform: uppercase; flex: 1; }
+.panel h4 { font: 500 14px var(--disp); letter-spacing: .1em; text-transform: uppercase; color: var(--mut); }
+.x { width: 30px; height: 30px; background: none; border: 1px solid var(--line); cursor: pointer; }
+.x:hover { border-color: var(--ink); }
+#invPanel { right: var(--gr); top: 50%; transform: translateY(-50%); width: min(400px, calc(100% - 32px)); max-height: 88%; overflow-y: auto; }
+#lootPanel { right: calc(var(--gr) + 412px); top: 50%; transform: translateY(-50%); width: 272px; max-height: 70%; overflow-y: auto; }
+#invWeight { font: 500 15px var(--disp); font-variant-numeric: tabular-nums; } #invWeight.bad { color: var(--rust); }
+#lootAll, .rc button { padding: 5px 12px; background: var(--cell); border: 1px solid var(--line); cursor: pointer; font: 500 14px var(--disp); }
+#lootAll:hover:enabled, .rc button:hover:enabled { border-color: var(--amber); color: var(--amber); }
+#lootAll:disabled, .rc button:disabled { opacity: .4; cursor: default; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; }
+.mut { grid-column: 1 / -1; color: var(--mut); font-size: 14px; }
+.it { position: relative; aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; background: var(--cell); border: 1px solid var(--line); cursor: pointer; }
+.it:hover { border-color: var(--ink); }
+.it.empty { cursor: default; opacity: .5; }
+.it img { width: 100%; height: 100%; display: block; }
+.em { font-size: 26px; line-height: 1; } .em.tx { font: 700 15px var(--disp); color: var(--amber); }
+.it .q { position: absolute; right: 3px; bottom: 1px; font: 700 12px var(--disp); text-shadow: 0 0 3px #000, 0 0 3px #000; }
+.it .dur { position: absolute; left: 3px; right: 3px; bottom: 3px; }
+.it.r1 { border-color: var(--r1); } .it.r2 { border-color: var(--r2); } .it.r3 { border-color: var(--r3); } .it.r4 { border-color: var(--r4); box-shadow: inset 0 0 12px rgba(255, 157, 51, .35); }
+#eqSlots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.eq { display: flex; flex-direction: column; gap: 3px; } .eq small { color: var(--mut); font-size: 12px; } .eq.act small { color: var(--amber); }
+#craftList { display: flex; flex-direction: column; gap: 6px; }
+.rc { display: flex; align-items: center; gap: 8px; } .rc .it { width: 40px; flex: none; cursor: default; } .rc .em { font-size: 20px; }
+.rt { flex: 1; min-width: 0; display: flex; flex-direction: column; } .rt b { font: 500 14px var(--disp); } .rt small { color: var(--mut); font-size: 12.5px; }
+.ok { color: var(--moss); } .no { color: var(--rust); }
+#tooltip { position: fixed; z-index: 60; width: 250px; padding: 10px 12px; background: #0f120d; border: 1px solid var(--mut); pointer-events: none; display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+#tooltip b { font: 500 17px var(--disp); } #tooltip small { color: var(--mut); } #tooltip p { color: var(--mut); margin-block: 4px; } #tooltip em { color: var(--mut); font-size: 12px; font-style: normal; }
+.tr { display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; } .tr span:first-child { color: var(--mut); }
+.af { color: var(--amber); }
+#charPanel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(1120px, calc(100% - 32px)); max-height: 92%; overflow-y: auto; }
+#charPanel > .x { position: absolute; right: 12px; top: 12px; }
+#charBody > header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-right: 40px; }
+#charBody .big { font-size: 40px; } #charBody header > div:nth-child(2) { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
+#charBody h2 { font: 500 24px var(--disp); letter-spacing: .03em; }
+#charBody small { color: var(--mut); font-size: 12.5px; }
+.pts { display: flex; flex-direction: column; gap: 2px; font: 500 15px var(--disp); color: var(--mut); } .pts .has { color: var(--amber); }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); gap: 20px; margin-top: 14px; }
+.cols section { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cols h3 { font-size: 16px; color: var(--amber); border-bottom: 1px solid var(--line); padding-bottom: 4px; flex: none; }
+.cols h3 small { text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.at { display: flex; align-items: center; gap: 8px; } .at > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.aic { font-size: 22px; width: 28px; text-align: center; }
+.at b, .sk b { font: 500 15px var(--disp); } u { text-decoration: none; color: var(--amber); margin-left: 4px; }
+.at button { width: 30px; height: 30px; flex: none; background: var(--amber); color: var(--soot); border: 0; font: 700 20px/1 var(--disp); cursor: pointer; }
+.at button:disabled { background: var(--cell); color: var(--line); cursor: default; }
+.pips { display: flex; gap: 2px; } .pips i { width: 10px; height: 5px; background: var(--cell); border: 1px solid var(--line); } .pips i.on { background: var(--amber); border-color: var(--amber); }
+.sk { display: flex; flex-direction: column; gap: 3px; }
+.der { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; font-size: 14px; font-variant-numeric: tabular-nums; } .der span { color: var(--mut); } .der b { font-weight: 500; text-align: right; }
+.pcols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } .pcols > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pk { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; text-align: left; background: var(--cell); border: 1px solid var(--line); cursor: default; }
+.pk b { font: 500 14px var(--disp); padding-right: 30px; } .pk .rk { position: absolute; right: 8px; top: 6px; font: 700 13px var(--disp); color: var(--mut); }
+.pk em { font-style: normal; font-size: 12px; color: var(--rust); }
+.pk.lock { opacity: .5; } .pk.own { border-color: var(--moss); } .pk.own .rk { color: var(--moss); } .pk.max { background: rgba(134, 194, 94, .12); }
+.pk.can { cursor: pointer; border-color: var(--amber); } .pk.can:hover { background: rgba(227, 181, 75, .14); }
+#mapPanel { left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 32px); }
+#bigmap { display: block; width: min(640px, 76vmin); max-width: 100%; height: auto; }
+
+/* ── екрани ── */
+.screen { position: fixed; inset: 0; z-index: 40; overflow-y: auto; background: linear-gradient(90deg, rgba(8, 9, 7, .95), rgba(8, 9, 7, .82) 55%, rgba(8, 9, 7, .28)); }
+.wrap { max-width: 900px; margin-left: clamp(0px, 5vw, 90px); padding-block: clamp(22px, 5vh, 56px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { color: var(--rust); font: 500 14px var(--disp); letter-spacing: .28em; text-transform: uppercase; }
+.wrap h1 { font: 700 clamp(54px, 11vw, 128px)/.92 var(--disp); letter-spacing: .02em; text-transform: uppercase; text-wrap: balance; background: linear-gradient(180deg, #f1ead6 34%, #dba54c 66%, #c9452b 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.wrap h1.sm { font-size: clamp(44px, 8vw, 92px); }
+.wrap h1.dead { background: none; color: var(--blood); }
+.lead { max-width: 62ch; font-size: 17px; }
+.wrap h2 { font: 500 17px var(--disp); letter-spacing: .14em; text-transform: uppercase; color: var(--mut); }
+#classList { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.cls { display: flex; flex-direction: column; gap: 6px; padding: 13px; text-align: left; background: rgba(27, 30, 26, .86); border: 1px solid var(--line); cursor: pointer; min-width: 0; }
+.cls:hover { border-color: var(--mut); } .cls.sel { border-color: var(--amber); background: rgba(62, 49, 20, .82); }
+.cic { font-size: 30px; line-height: 1; } .cls b { font: 500 20px var(--disp); } .cd { font-size: 14px; } .cb { color: var(--amber); font-size: 13.5px; } .cg { color: var(--mut); font-size: 12.5px; }
+.go { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.btn { padding: 13px 34px; background: var(--rust); border: 0; color: #fff; font: 700 20px var(--disp); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.btn:hover { filter: brightness(1.15); } .btn.alt { background: var(--cell); border: 1px solid var(--line); color: var(--ink); }
+#menuErr { color: #ffb3a6; } .touch { display: none; color: var(--amber); }
+@media (pointer: coarse) { .touch { display: block; } }
+.ctl { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 5px 26px; color: var(--mut); font-size: 14px; }
+.ctl span { display: flex; gap: 8px; align-items: baseline; } .ctl i { font-style: normal; color: var(--ink); min-width: 96px; }
+.stats { max-width: 380px; padding: 14px; background: rgba(27, 30, 26, .86); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 1320px) { #log, #keys { bottom: 68px; } #prompt { bottom: 150px; } }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } .pcols { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  #lootPanel { right: var(--gr); top: 14px; transform: none; width: calc(100% - 32px); max-height: 34%; }
+  #invPanel { top: auto; bottom: 14px; transform: none; max-height: 56%; }
+  #keys, #quest { display: none; } #left { width: 170px; } #minimap { width: 120px; height: 120px; } .ws { width: 150px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ── v2: навчання, крафт, база, меню, збереження ── */
+.fl.res { color: #f3e6b0; font-size: 16px; }
+#quest.tut { border-left-color: var(--moss); animation: tutpulse 1.6s infinite alternate; }
+#quest.tut b { color: var(--moss); }
+@keyframes tutpulse { from { box-shadow: 0 0 0 1px rgba(134, 194, 94, 0); } to { box-shadow: 0 0 0 1px rgba(134, 194, 94, .55), 0 0 18px rgba(134, 194, 94, .25); } }
+#questSkip { align-self: flex-start; margin-top: 4px; padding: 2px 8px; background: none; border: 1px solid var(--line); color: var(--mut); font-size: 12px; cursor: pointer; pointer-events: auto; }
+#questSkip:hover { color: var(--ink); border-color: var(--mut); }
+#saved { opacity: 0; color: var(--moss); font: 500 14px var(--disp); text-shadow: 0 1px 3px #000; }
+#saved.on { animation: savedfx 2.4s ease-out; }
+@keyframes savedfx { 0% { opacity: 0; transform: translateY(-6px); } 12% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; } }
+#craftBar { left: 50%; bottom: 132px; transform: translateX(-50%); width: 240px; padding: 6px 10px; background: rgba(12, 14, 11, .86); border: 1px solid var(--amber); display: flex; flex-direction: column; gap: 4px; font: 500 14px var(--disp); }
+#craftBar > i, .pb { display: block; height: 5px; position: relative; background: rgba(0, 0, 0, .6); }
+#craftBar > i > i, .pb > i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--amber); }
+.pb { display: none; margin-top: 3px; } .rc.act .pb { display: block; } .rc.act b { color: var(--amber); }
+.rc button + button { padding-inline: 8px; }
+.panel:not([hidden]), .screen:not([hidden]) { animation: fadein .18s ease-out; }
+@keyframes fadein { from { opacity: 0; } }
+#buildPanel { left: var(--gl); top: 50%; transform: translateY(-50%); width: min(380px, calc(100% - 32px)); max-height: 86%; overflow-y: auto; }
+#buildList { display: flex; flex-direction: column; gap: 6px; }
+.bd { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; text-align: left; background: var(--cell); border: 1px solid var(--line); cursor: pointer; }
+.bd b { font: 500 15px var(--disp); } .bd small { font-size: 12.5px; color: var(--mut); } .bd span { font-size: 13px; color: var(--mut); }
+.bd.can { border-color: var(--moss); } .bd:hover:enabled { border-color: var(--amber); } .bd.lock { opacity: .5; cursor: default; }
+#basePanel { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100% - 32px)); }
+#baseBody { display: flex; flex-direction: column; gap: 10px; } .cost { font-size: 14px; }
+.blv { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; } .blv b { font: 500 26px var(--disp); color: var(--amber); } .blv span { color: var(--mut); }
+#baseUp:disabled { filter: grayscale(1); opacity: .5; cursor: default; }
+.mv { display: flex; flex-direction: column; gap: 16px; }
+.mbtns { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.mbtn { width: min(340px, 100%); display: flex; flex-direction: column; gap: 2px; padding: 12px 22px; text-align: left; background: rgba(27, 30, 26, .86); border: 1px solid var(--line); border-left: 4px solid var(--line); cursor: pointer; font: 500 22px var(--disp); letter-spacing: .06em; text-transform: uppercase; transition: border-color .15s, padding-left .15s; }
+.mbtn:hover { border-color: var(--amber); padding-left: 30px; } .mbtn.pri { border-left-color: var(--rust); }
+.mbtn small { font: 400 13px var(--body); letter-spacing: 0; text-transform: none; color: var(--mut); }
+.slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.slot { display: flex; flex-direction: column; gap: 3px; padding: 12px; min-width: 0; text-align: left; background: rgba(27, 30, 26, .86); border: 1px solid var(--line); font-size: 14px; }
+button.slot { cursor: pointer; } button.slot:hover { border-color: var(--mut); }
+.slot.sel { border-color: var(--amber); background: rgba(62, 49, 20, .82); } .slot.empty { opacity: .6; }
+.slot b { font: 500 18px var(--disp); } .slot small, .slot .se { color: var(--mut); } .slot em { font-style: normal; color: var(--rust); font-size: 13px; }
+.sb { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.mini { padding: 5px 12px; background: var(--cell); border: 1px solid var(--line); cursor: pointer; font: 500 14px var(--disp); }
+.mini:hover { border-color: var(--amber); } .mini.go { background: var(--rust); border-color: var(--rust); color: #fff; } .mini.bad { border-color: var(--rust); color: #ffb3a6; }
+.set { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 280px); gap: 14px 18px; align-items: center; max-width: 520px; font-size: 16px; }
+.set select { width: 100%; padding: 6px 8px; background: var(--cell); color: var(--ink); border: 1px solid var(--line); font: inherit; }
+.set input[type=range] { width: 100%; accent-color: var(--amber); } .set input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--amber); justify-self: start; }
+#sleep { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(4, 6, 10, .8); pointer-events: none; }
+#sleep div { text-align: center; font: 500 20px var(--disp); color: var(--mut); } #sleep b { display: block; font-size: 46px; color: var(--ink); animation: pulse 1.4s infinite alternate; }
+#loading { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: var(--soot); }
+#loading div { display: flex; flex-direction: column; gap: 12px; align-items: center; font: 500 20px var(--disp); letter-spacing: .2em; text-transform: uppercase; color: var(--mut); }
+#loading i { display: block; width: 220px; height: 4px; position: relative; overflow: hidden; background: var(--cell); }
+#loading i::after { content: ""; position: absolute; inset: 0 60% 0 0; background: var(--amber); animation: loadbar 1s infinite ease-in-out alternate; }
+@keyframes loadbar { to { inset: 0 0 0 60%; } }
+@media (max-width: 1320px) { #craftBar { bottom: 200px; } }
+@media (max-width: 760px) { #buildPanel { top: 14px; transform: none; max-height: 60%; } .set { grid-template-columns: 1fr; } }
+/* ── живе меню й екран завантаження ── */
+#menuFade { position: fixed; inset: 0; z-index: 39; background: #000; opacity: 0; pointer-events: none; }
+#menuFx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#menu .wrap { position: relative; }
+#sceneCap { position: fixed; right: var(--gr); bottom: max(16px, env(safe-area-inset-bottom, 0px)); padding: 6px 12px; background: rgba(12, 14, 11, .7); border-left: 3px solid var(--amber); font: 500 15px var(--disp); letter-spacing: .08em; text-transform: uppercase; }
+#sceneCap small { display: block; color: var(--mut); font: 400 12.5px var(--body); letter-spacing: 0; text-transform: none; }
+#menuTip { max-width: 56ch; min-height: 3.2em; padding: 8px 12px; border-left: 3px solid var(--moss); background: rgba(12, 14, 11, .6); font-size: 14.5px; transition: opacity .45s; }
+#menuTip::before { content: "Порада · "; color: var(--moss); font: 500 13px var(--disp); letter-spacing: .1em; text-transform: uppercase; }
+.wrap h1 { background-size: 100% 220%; animation: ember 7s ease-in-out infinite alternate; }
+@keyframes ember { from { background-position: 50% 0%; } to { background-position: 50% 100%; } }
+#loading > div { width: min(440px, calc(100% - 32px)); text-align: center; }
+.lem { width: 54px; height: 54px; background: linear-gradient(180deg, #f1ead6, #dba54c 55%, #c9452b); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); animation: lem 1.1s ease-in-out infinite alternate; }
+@keyframes lem { to { transform: scale(1.16) rotate(10deg); filter: brightness(1.25); } }
+#loading i { width: 100%; } #loading i::after { content: none; }
+#loading i > i { position: absolute; inset: 0 auto 0 0; width: 8%; height: 100%; background: var(--amber); transition: width .25s ease-out; }
+#loadTip { max-width: 46ch; min-height: 2.8em; color: var(--mut); font: 400 13.5px/1.4 var(--body); letter-spacing: 0; text-transform: none; }
+/* ── v3: компактніший інтерфейс, підказка над об'єктом, картинки будівель ── */
+#weapons { gap: 5px; }
+.ws { width: auto; flex-direction: column; align-items: center; gap: 3px; padding: 5px 6px 4px; position: relative; }
+.ws small { position: absolute; left: 4px; top: 1px; font-size: 10px; }
+.ws .wi { width: 38px; height: 38px; border: 1px solid transparent; }
+.ws .em { font-size: 22px; }
+.ws .am { font-size: 12.5px; line-height: 1; } .ws .am i { font-style: normal; font-size: 10.5px; color: var(--mut); }
+.ws .dur { width: 38px; height: 3px; }
+#prompt { position: fixed; left: 0; top: 0; bottom: auto; transform: translate(-50%, -100%); padding: 3px 9px; font-size: 13.5px; border-color: var(--amber); }
+#prompt kbd { background: var(--amber); border-color: var(--amber); color: var(--soot); }
+.panel { padding: 10px; gap: 8px; font-size: 13.5px; }
+.panel h3 { font-size: 15px; } .panel h4 { font-size: 12.5px; }
+.x { width: 24px; height: 24px; font-size: 12px; }
+#invPanel { width: min(330px, calc(100% - 32px)); }
+#lootPanel { right: calc(var(--gr) + 340px); width: 226px; }
+.grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; }
+.it .em { font-size: 21px; } .it .em.tx { font-size: 12.5px; }
+#eqSlots { gap: 4px; } .eq small { font-size: 11px; }
+.rc { gap: 6px; } .rc .it { width: 32px; } .rt b { font-size: 13px; } .rt small { font-size: 11.5px; }
+#lootAll, .rc button { padding: 3px 8px; font-size: 12.5px; }
+#craftTitle { display: flex; align-items: center; gap: 8px; } #craftTitle img { width: 30px; height: 30px; }
+#buildPanel { width: min(290px, calc(100% - 32px)); max-height: 78%; }
+#buildList { gap: 4px; }
+.bd { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 8px; align-items: center; padding: 3px 8px 3px 3px; }
+.bd img, .bd .bx { grid-row: 1 / 3; width: 44px; height: 44px; display: grid; place-items: center; background: var(--cell); font-size: 20px; color: var(--rust); }
+.bd b { font-size: 14px; align-self: end; } .bd small { font-size: 11.5px; align-self: start; }
+#basePanel { width: min(350px, calc(100% - 32px)); } .blv b { font-size: 21px; } #baseUp { padding: 8px 16px; font-size: 15px; }
+#charPanel { width: min(940px, calc(100% - 32px)); max-height: 88%; } #charBody h2 { font-size: 19px; } .cols { gap: 14px; margin-top: 10px; } .cols h3 { font-size: 14px; }
+.at b, .sk b { font-size: 13.5px; } #charBody small { font-size: 11.5px; } .aic { font-size: 18px; width: 22px; } .at button { width: 24px; height: 24px; font-size: 16px; }
+.pk { padding: 5px 7px; } .pk b { font-size: 13px; }
+#tooltip { width: 220px; padding: 8px 10px; font-size: 12.5px; } #tooltip b { font-size: 15px; }
+#bigmap { width: min(520px, 70vmin); }
+#keys { font-size: 12px; line-height: 1.65; }
+.mbtns .ctl { margin-top: 10px; max-width: 640px; }
+#questDist { float: right; font-style: normal; color: var(--amber); letter-spacing: 0; }
+#qArrow { position: fixed; z-index: 5; left: 0; top: 0; color: var(--amber); font-size: 24px; line-height: 1; text-shadow: 0 0 4px #000, 0 0 2px #000; pointer-events: none; }
+.pcols { grid-template-columns: repeat(4, minmax(0, 1fr)); } .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.7fr); }
+@media (max-width: 900px) { .cols, .pcols { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { #lootPanel { right: var(--gr); width: calc(100% - 32px); } }
+</style>
+
+<canvas id="game" aria-label="Ігрова сцена"></canvas>
+<div id="vignette"></div><div id="lowhp"></div><div id="hurt"></div><div id="floaters"></div>
+
+<div id="hud" hidden>
+  <div id="left">
+    <div class="lv"><div id="lvl">1</div><div class="lvr"><span id="clsname"></span><div class="bar xp"><i id="xpbar"></i></div></div></div>
+    <div class="st"><span class="si">❤</span><div class="bar hp"><i id="hpbar"></i></div><b id="hptext">100</b></div>
+    <div class="st"><span class="si">⚡</span><div class="bar stm"><i id="stbar"></i></div></div>
+    <div class="st"><span class="si">🍖</span><div class="bar hg"><i id="hgbar"></i></div><span class="si">💧</span><div class="bar th"><i id="thbar"></i></div></div>
+    <div id="effects"></div>
+    <div id="ptsHint" hidden>Є вільні очки розвитку — <kbd>P</kbd></div>
+    <div id="quest"><small>Завдання<i id="questDist"></i></small><b id="questTitle"></b><span id="questDesc"></span><button type="button" id="questSkip" hidden>Пропустити навчання</button></div>
+  </div>
+  <div id="topright"><div id="clock"></div><canvas id="minimap" width="190" height="190"></canvas><div class="tr2"><span id="zone"></span><span id="kills"></span></div><div id="saved">Збережено ✓</div></div>
+  <div id="timer" hidden></div>
+  <div id="log"></div>
+  <div id="prompt" hidden></div>
+  <div id="craftBar" hidden><span id="craftName"></span><i><i id="craftFill"></i></i></div>
+  <div id="weapons"><div class="ws" id="ws1"></div><div class="ws" id="ws2"></div></div>
+  <div id="keys">
+    <kbd>WASD</kbd> рух · <kbd>Shift</kbd> біг · <kbd>C</kbd> скрадання<br>
+    <kbd>ЛКМ</kbd> удар / постріл · <kbd>Пробіл</kbd> поштовх · <kbd>R</kbd> перезарядка<br>
+    <kbd>E</kbd> дія · <kbd>H</kbd> лікування · <kbd>F</kbd> ліхтарик · <kbd>Q</kbd> зміна зброї<br>
+    <kbd>Tab</kbd> інвентар · <kbd>B</kbd> будівництво · <kbd>P</kbd> персонаж · <kbd>M</kbd> мапа
+  </div>
+</div>
+
+<div id="qArrow" hidden>➤</div>
+<section id="lootPanel" class="panel" hidden><header><h3 id="lootTitle"></h3><button type="button" id="lootAll">Забрати все <kbd>E</kbd></button></header><div class="grid" id="lootGrid"></div></section>
+<section id="invPanel" class="panel" hidden>
+  <header><h3>Інвентар</h3><span id="invWeight"></span><button type="button" class="x" data-close aria-label="Закрити">✕</button></header>
+  <div id="eqSlots"></div><div class="grid" id="invGrid"></div>
+  <h4 id="craftTitle">Майстерня</h4><div id="craftList"></div>
+</section>
+<section id="charPanel" class="panel" hidden><button type="button" class="x" data-close aria-label="Закрити">✕</button><div id="charBody"></div></section>
+<section id="mapPanel" class="panel" hidden><header><h3>Мапа міста</h3><button type="button" class="x" data-close aria-label="Закрити">✕</button></header><canvas id="bigmap" width="640" height="640"></canvas></section>
+<section id="buildPanel" class="panel" hidden><header><h3>Будівництво</h3><button type="button" class="x" data-close aria-label="Закрити">✕</button></header><div id="buildList"></div></section>
+<section id="basePanel" class="panel" hidden><header><h3>База</h3><button type="button" class="x" data-close aria-label="Закрити">✕</button></header><div id="baseBody"></div><button type="button" id="baseUp" class="btn">Покращити базу</button></section>
+<div id="tooltip" hidden></div>
+<div id="sleep" hidden><div><b>Zzz…</b>Ніч минає швидше. Будь-яка клавіша руху або E — прокинутися.</div></div>
+
+<div id="pause" class="screen" hidden>
+  <div class="wrap"><p class="eyebrow">Гру зупинено</p><h1 class="sm">Пауза</h1>
+    <div class="mbtns">
+      <button type="button" class="mbtn pri" data-m="resume">Продовжити</button>
+      <button type="button" class="mbtn" data-m="savenow">Зберегти гру<small>Гра також зберігається сама щохвилини</small></button>
+      <button type="button" class="mbtn" data-m="settings">Налаштування</button>
+      <button type="button" class="mbtn" data-m="quit">Зберегти й вийти в меню</button>
+      <div class="ctl">
+        <span><i>WASD</i> рух відносно камери</span><span><i>Shift / C</i> біг / скрадання</span>
+        <span><i>ЛКМ</i> удар, постріл, рубання</span><span><i>Пробіл / V</i> поштовх / ухил</span>
+        <span><i>E</i> дія: обшук, двері, збирання, ремонт</span><span><i>B</i> будівництво в межах бази</span>
+        <span><i>Tab / P / M</i> інвентар, персонаж, мапа</span><span><i>R / Q / 1 2</i> перезарядка, зміна зброї</span>
+        <span><i>H / G / F</i> лікування / їжа й вода / ліхтарик</span><span><i>ПКМ + рух</i> камера, коліщатко — масштаб</span>
+      </div>
+    </div></div>
+</div>
+<div id="menuFade"></div>
+<div id="menu" class="screen"><canvas id="menuFx"></canvas><div id="sceneCap"></div>
+  <div class="wrap">
+    <p class="eyebrow">RPG-виживання · карантинна зона</p>
+    <h1>Попелище</h1>
+    <div id="mv-main" class="mv">
+      <p class="lead">Місто згоріло за три дні. Ти отямився в лісовому таборі за його межею. Добувай дерево, камінь і руду, розбудовуй базу, ходи в місто по здобич — і знайди спосіб викликати евакуацію.</p>
+      <div class="mbtns">
+        <button type="button" class="mbtn pri" id="btnContinue" data-m="continue" hidden>Продовжити<small id="contInfo"></small></button>
+        <button type="button" class="mbtn" data-m="new">Нова гра<small>П'ять слотів збереження, навчання на початку</small></button>
+        <button type="button" class="mbtn" id="btnLoad" data-m="load" hidden>Завантажити<small>Вибрати слот збереження</small></button>
+        <button type="button" class="mbtn" data-m="settings">Налаштування<small>Звук, тіні, роздільність, навчання</small></button>
+      </div>
+      <p id="menuTip"></p>
+      <p id="menuErr" hidden></p><p class="touch">Гра керується клавіатурою й мишею — відкрий її на комп'ютері.</p>
+    </div>
+    <div id="mv-new" class="mv" hidden>
+      <h2>Слот збереження</h2><div class="slots" id="slotsNew"></div>
+      <h2>Хто ти?</h2><div id="classList"></div>
+      <div class="go"><button type="button" class="btn" data-m="start">Почати гру</button><button type="button" class="btn alt" data-m="back">Назад</button></div>
+    </div>
+    <div id="mv-load" class="mv" hidden>
+      <h2>Збережені ігри</h2><div class="slots" id="slotsLoad"></div>
+      <div class="go"><button type="button" class="btn alt" data-m="back">Назад</button></div>
+    </div>
+    <div id="mv-settings" class="mv" hidden>
+      <h2>Налаштування</h2>
+      <div class="set">
+        <label for="setVol">Гучність</label><input type="range" id="setVol" min="0" max="100" step="5">
+        <label for="setShadow">Тіні</label><select id="setShadow"><option value="2">Високі</option><option value="1">Низькі</option><option value="0">Вимкнено</option></select>
+        <label for="setRes">Роздільність картинки</label><select id="setRes"><option value="2">Висока</option><option value="1">Звичайна</option><option value="0">Низька (швидше)</option></select>
+        <label for="setTut">Навчання на початку нової гри</label><input type="checkbox" id="setTut">
+      </div>
+      <div class="go"><button type="button" class="btn alt" data-m="back">Назад</button></div>
+    </div>
+  </div>
+</div>
+<div id="death" class="screen" hidden>
+  <div class="wrap"><p class="eyebrow">Ліс і місто забрали ще одного</p><h1 class="sm dead">Ти загинув</h1><div class="stats" id="deathStats"></div>
+    <div class="go"><button type="button" class="btn" data-m="reload">Завантажити останнє збереження</button><button type="button" class="btn alt" data-m="tomenu">Головне меню</button></div></div>
+</div>
+<div id="win" class="screen" hidden>
+  <div class="wrap"><p class="eyebrow">Борт на землі</p><h1 class="sm">Евакуація</h1><p class="lead">Ти вибрався живим. Можна полетіти — або лишитися, розбудовувати базу й рахувати пережиті ночі.</p><div class="stats" id="winStats"></div>
+    <div class="go"><button type="button" class="btn" data-m="tomenu">Головне меню</button><button type="button" class="btn alt" data-m="stay">Лишитися</button></div></div>
+</div>
+<div id="loading"><div><b class="lem"></b><span id="loadText">Завантаження світу</span><i><i id="loadFill"></i></i><small id="loadTip"></small></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/data2.js"></script>
+<script src="js/world.js"></script>
+<script src="js/wild.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/models.js"></script>
+<script src="js/nodes.js"></script>
+<script src="js/base.js"></script>
+<script src="js/stations.js"></script>
+<script src="js/craft.js"></script>
+<script src="js/extras.js"></script>
+<script src="js/quest.js"></script>
+<script src="js/save.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/menu.js"></script>
+<script src="js/menufx.js"></script>
+<script src="js/main.js"></script>
+<script src="js/survival.js"></script>
+<script src="js/game.js"></script>
+<script>if (!window.THREE) document.getElementById('loadText').textContent = 'Не вдалося завантажити 3D-бібліотеку. Перевір інтернет і онови сторінку.';</script>
